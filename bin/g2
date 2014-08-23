@@ -1,0 +1,99 @@
+###################################################################
+## g2 - a tinyurl-like tool from CLI
+## AUTHOR: ismael.angelo@casimpan.com
+###################################################################
+
+#!/bin/bash
+
+## DESIRED COMMAND => ./g2_v2 <URL_HINT> <browser_type>
+
+## PARAMETERS
+url_hint="$1"
+browser_type="$2"
+
+tooldir=$(dirname $0)
+conf="$tooldir/../conf/g2.conf"
+
+## Allow custom selection of browser (via last parameter perhaps)
+
+## list of browsers + full path
+chrome_bin='/cygdrive/c/Program Files (x86)/Google/Chrome/Application/chrome.exe'
+firefox_bin='/cygdrive/c/Program Files (x86)/Mozilla Firefox/firefox.exe'
+ie_bin='/cygdrive/c/Program Files/Internet Explorer/iexplore.exe'
+iron_bin='/cygdrive/c/Program Files (x86)/SRWare Iron/iron.exe'
+
+case "$browser_type" in
+  chrome|cr)
+    browser2use=$chrome_bin
+  ;;
+  firefox|ff)
+    browser2use=$firefox_bin
+  ;;
+  ie)
+    browser2use=$ie_bin
+  ;;
+  iron|ir)
+    browser2use=$iron_bin
+  ;;
+  *)
+    browser2use=$iron_bin
+  ;;
+esac
+
+## ============================================================
+## PARSE $url_hint
+##      NOTE: / is important as it delimits id from param
+##      example: goog/?gws_rd=ssl#q=linux+centos is VALID
+##               goog?gws_rd=ssl#q=linux+centos is NOT_VALID
+## 
+## ANOTHER NOTE: 
+##  * If there is a urlparameter "&", whole $url_hint must be
+##    quoted like below (since & in CLI means that job must be
+##    run in background). 
+##      Example: "hint_here/?p1=this&p2=here" is VALID
+##                hint_here/?p1=this&p2=here is NOT VALID
+##               
+## ============================================================
+
+##
+## $applic_id -> identifier of browser app to open
+##   * url_hint="hint_here/?p1=this&p2=here"
+##     $applic_id=hiint_here
+applic_id=$(echo "$url_hint"|cut -d'/' -f1)
+
+if [ "$applic_id" != "$url_hint" ]; then
+    ##
+    ## $applic_param -> optional parameters to browser app
+    ##   * url_hint="hint_here/?p1=this&p2=here"
+    ##     $applic_param='?p1=this&p2=here' 
+    applic_param=${url_hint##*/}
+fi
+
+## ensure $url_hint exist
+valid_urlhint=$(cut -d' ' -f1 $conf|grep -v ^#|grep -v ^$|grep ^"$applic_id"$)
+[[ "$valid_urlhint" != "$applic_id" ]] && {
+   echo "ERROR: hint ($applic_id) not found!" 
+   exit 1
+}
+
+## ============================================================
+## ASSEMBLE THE FINAL URL
+## ============================================================
+##    ex: goog                 --> https://www.google.com/
+##        goog/#q=linux+centos --> https://www.google.com/#q=linux+cents
+final_url=$(awk "/^$applic_id / {print \$NF}" $conf)
+final_url="$final_url$applic_param"
+
+## ============================================================
+## OPEN $final_url IN BROWSER, if parameter cound != 0 
+## ============================================================
+#
+
+[[ $# = 0 ]] && { 
+  echo "ERROR: urlhint missing";
+  echo "Usage: g2 <urlhint_here>"
+  exit 1
+}
+
+echo "[log] - \$final_url - |$final_url|"
+"$browser2use" "$final_url"
