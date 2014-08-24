@@ -1,0 +1,142 @@
+#!/bin/bash
+
+###############################################################
+## AUTHOR: Ismael Casimpan <ismael.angelo@casimpan.com>
+###############################################################
+
+MACHINE_NAME=$1
+USER_TO_USE=$2
+
+## $devel_mode - settings different than when used in production
+##     1 - enable devel_mode
+##     0 - disabl devel_mode
+devel_mode=0
+
+## $enable_sshkey_autodetect:
+##     1 - enable ssh key detection
+##     0 - disable ssh key detection
+enable_sshkey_autodetect=1
+
+## include config file
+path_to_script=`dirname $0`
+[ $devel_mode -eq 1 ] && path_to_script='.' ## when in development, conf is in current location
+. "$path_to_script"/../conf/ssh_connect.conf
+
+autodetect_sshkey ()
+{
+    echo ${sshkey_to_use[$1]}
+}
+
+## RETURN: either "" or the actual value of key $MACHINE in $other_hosts
+check_other_hosts ()
+{
+    echo ${other_hosts[$1]}
+}
+
+## RETURN: either "" or the actual value of key $MACHINE in $restricted_hosts
+check_restricted_hosts ()
+{
+    echo ${restricted_hosts[$1]}
+}
+
+get_restricted_proxy ()
+{
+    echo ${restricted_proxy[$1]}
+}
+
+get_restricted_sshkey ()
+{
+    echo ${restricted_sshkey[$1]}
+}
+
+get_default_user ()
+{
+    echo ${hosts_to_user[$1]}
+}
+
+
+resolve_user ()
+{
+    local USER_GIVEN=$1
+    local ret_val=
+
+    if [ "$USER_GIVEN" == "" ]; then  ## no parameter $USER_GIVEN. Assume 'root'
+         ret_val="root"
+    else
+        ret_val=${user_alias[${USER_GIVEN}]}
+        [ "$ret_val" == "" ] && ret_val=$USER_GIVEN ## no result. Assume $USER_GIVEN as is
+    fi
+
+    echo $ret_val
+}
+
+## RETURN: either full name or value in /etc/hosts (if it is not down)
+##         if down or not found, empty string is returned
+resolve_target ()
+{
+    local MACHINE=$1
+    ret_val=""
+
+    is_host_alive=`ping -n 1 $MACHINE|awk -F\, '/Received/ {print $2}'|cut -d' ' -f4`
+    is_other_host=$(check_other_hosts $MACHINE)
+    [ "$is_other_host" == "" ] && is_restricted_host=$(check_restricted_hosts $MACHINE)
+	
+    ## ensure host is alive first...
+    if [ "$is_host_alive" != "" ] && [ $is_host_alive -gt 0 ] ; then
+       ret_val=$MACHINE
+    ## then, check if it's in $other_hosts
+    elif [ "$is_other_host" != "" ]; then
+       ret_val=$is_other_host
+    ## otherwise, check if it's a restricted host
+	elif [ "$is_restricted_host" != "" ]; then
+	   ret_val=$is_restricted_host
+    ## otherwise, return "" (default value)
+    fi
+
+    echo $ret_val
+}
+
+## SHOW usage()
+usage ()
+{
+     echo 'Usage: ssh_connect <hostname> <username|o>'
+     echo ' where: '
+     echo '    hostname - any valid machine name specified in local /etc/hosts'
+     echo "    username - defaults to root if not specified"
+     exit 1
+}
+
+if [ $# -lt 1 ]; then
+    echo "ERROR: Please specify at least machine name"
+    usage
+else
+    default_user_detected=$(get_default_user $MACHINE_NAME)
+    sshkey_switch="" ## use '-i key_name_here'. By default, use none
+    if [ $enable_sshkey_autodetect -eq 1 ]; then
+        sshkey_detected=$(autodetect_sshkey $MACHINE_NAME)
+        [ "$sshkey_detected" != "" ] && sshkey_switch="-i ${path_to_sshkey}/${sshkey_detected}" 
+    fi
+	machine_restricted=$(check_restricted_hosts $MACHINE_NAME)
+	[ "$machine_restricted" != "" ] && proxy_info=$(get_restricted_proxy $MACHINE_NAME)
+	[ "$machine_restricted" != "" ] && proxy_sshkey=$(get_restricted_sshkey $MACHINE_NAME)
+    MACHINE_NAME=$(resolve_target $MACHINE_NAME)
+
+
+    ## no need to proceed, target is not valid/down
+    if [ "$MACHINE_NAME" == "" ]; then
+        echo "ERROR: unknown machine name or machine down"
+        usage
+    ## there's no user specified and there is a detected user
+    elif [ "$default_user_detected" != "" ] && [ "$USER_TO_USE" == "" ]; then
+       USER_TO_USE=$default_user_detected
+    ## default $USER_TO_USE is 'root' if $2 is not present
+    else
+       USER_TO_USE=$(resolve_user $2)
+    fi
+	
+	if [ "$machine_restricted" == "" ]; then
+        ssh -o LogLevel=quiet -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ${sshkey_switch} ${USER_TO_USE}@${MACHINE_NAME} 
+	else	
+	    ssh -t -t -o LogLevel=quiet -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no $proxy_info "ssh -i ${proxy_sshkey} ${USER_TO_USE}@${MACHINE_NAME}"
+	fi
+fi
