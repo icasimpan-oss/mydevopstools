@@ -72,7 +72,7 @@ fi
 ## ensure $url_hint exist
 valid_urlhint=$(cut -d' ' -f1 $conf|grep -v ^#|grep -v ^$|grep ^"$applic_id"$)
 [[ "$valid_urlhint" != "$applic_id" ]] && {
-   try_hint=`cut -d' ' -f1|grep $applic_id $conf|cut -d' ' -f1`
+   try_hint=`cut -d' ' -f1 $conf|grep $applic_id|cut -d' ' -f1`
    echo "ERROR: hint ($applic_id) not found or ambiguous!"
    ## if $try_hint has some matches, show it
    [[ "$try_hint" != "" ]] && {
