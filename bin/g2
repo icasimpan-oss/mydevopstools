@@ -47,11 +47,35 @@ parse_urlhint () {
   echo $retval
 } ## END: parse_urlhintO()
 
+## ---------------------------------------------------
+## check_delim() - checks for the delimiter in urlhint
+## INPUT :  $1 - either
+##               * goog/?gws_rd=ssl#q=linux+centos
+##               * goog?gws_rd=ssl#q=linux+centos
+## POSSIBLE OUTPOUT: 'NONE' --> nothing to parse
+##                   'FORWARD_SLASH' --> /
+##                   'QUESTION_MARK' --> ?
+## ---------------------------------------------------
+check_delim () {
+  local urlhint=$1
+
+  local delim_seen='NONE' ## default delimiter
+
+  ## check if QUESTION_MARK. Otherwise, it could be "FORWARD_SLASH'
+  if [[ "$(echo $urlhint |grep -c '?')"   -eq 1 ]]; then
+    delim_seen='QUESTION_MARK'
+  elif [[ "$(echo $urlhint |grep -c '/')" -eq 1 ]]; then
+    delim_seen='FORWARD_SLASH'    
+  fi
+
+  echo $delim_seen
+} ## END: check_delim()
+
 ## ============================================================
-## PARSE $url_hint
-##      NOTE: / is important as it delimits id from param
-##      example: goog/?gws_rd=ssl#q=linux+centos is VALID
-##               goog?gws_rd=ssl#q=linux+centos is NOT_VALID
+## PARSE $url_hint: now, / or ? is autodetected.
+##     Examples below are now both valid:
+##        * goog/?gws_rd=ssl#q=linux+centos
+##        * goog?gws_rd=ssl#q=linux+centos
 ## 
 ## ANOTHER NOTE: 
 ##  * If there is a urlparameter "&", whole $url_hint must be
@@ -62,19 +86,25 @@ parse_urlhint () {
 ##               
 ## ============================================================
 
-##
-## $applic_id -> identifier of browser app to open
+delim_seen=$(check_delim "$url_hint")
+
+## $applic_id -> identifier of browser URL to open
 ##   * url_hint="hint_here/?p1=this&p2=here"
 ##     $applic_id=hiint_here
-applic_id=$(echo "$url_hint"|cut -d'/' -f1)
-
-##
-## $applic_param -> optional parameters to browser app
-##   * url_hint="hint_here/?p1=this&p2=here"
-##     $applic_param='?p1=this&p2=here' 
-[[ "$applic_id" != "$url_hint" ]] && applic_param=${url_hint##*/}
-
-## ensure $url_hint exist
+case $delim_seen in 
+  QUESTION_MARK)
+    applic_param=${url_hint##*\?}
+    ## remove trailing forward slash(/) which is a result
+    ## of having this kind of url_hint --> "cv/?RIS=R_GOMS6_1.103.1.0"
+    applic_id=$(echo "$url_hint"|cut -d'?' -f1|cut -d'/' -f1)
+  ;;
+  FORWARD_SLASH)
+    applic_id=$(echo "$url_hint"|cut -d'/' -f1)
+    applic_param=$(echo "$url_hint"|sed "s|^$applic_id||")
+  ;;
+  *) 
+    applic_id=$url_hint
+esac
 valid_urlhint=$(parse_urlhint "$applic_id")
 
 [[ "$valid_urlhint" != "$applic_id" ]] && {
@@ -96,13 +126,11 @@ valid_urlhint=$(parse_urlhint "$applic_id")
 ##    ex: goog                 --> https://www.google.com/
 ##        goog/#q=linux+centos --> https://www.google.com/#q=linux+cents
 final_url=$(awk "/^$applic_id / {print \$NF}" $conf)
-final_url="$final_url$applic_param"
+[[ "$delim_seen" = "QUESTION_MARK" ]] && final_url="$final_url?$applic_param" || final_url="$final_url$applic_param"
 
 ## ============================================================
-## OPEN $final_url IN BROWSER, if parameter cound != 0 
+## OPEN $final_url IN BROWSER, if parameter count != 0 
 ## ============================================================
-#
-
 [[ $# = 0 ]] && { 
   echo "ERROR: urlhint missing";
   echo "Usage: g2 <urlhint_here>"
