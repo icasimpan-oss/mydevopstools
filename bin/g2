@@ -40,6 +40,13 @@ case "$browser_type" in
   ;;
 esac
 
+## get the real urlhint if it can
+parse_urlhint () {
+  local retval=$(cut -d' ' -f1 $conf|grep -v ^#|grep -v ^$|grep ^"$1"$)
+
+  echo $retval
+} ## END: parse_urlhintO()
+
 ## ============================================================
 ## PARSE $url_hint
 ##      NOTE: / is important as it delimits id from param
@@ -61,16 +68,15 @@ esac
 ##     $applic_id=hiint_here
 applic_id=$(echo "$url_hint"|cut -d'/' -f1)
 
-if [ "$applic_id" != "$url_hint" ]; then
-    ##
-    ## $applic_param -> optional parameters to browser app
-    ##   * url_hint="hint_here/?p1=this&p2=here"
-    ##     $applic_param='?p1=this&p2=here' 
-    applic_param=${url_hint##*/}
-fi
+##
+## $applic_param -> optional parameters to browser app
+##   * url_hint="hint_here/?p1=this&p2=here"
+##     $applic_param='?p1=this&p2=here' 
+[[ "$applic_id" != "$url_hint" ]] && applic_param=${url_hint##*/}
 
 ## ensure $url_hint exist
-valid_urlhint=$(cut -d' ' -f1 $conf|grep -v ^#|grep -v ^$|grep ^"$applic_id"$)
+valid_urlhint=$(parse_urlhint "$applic_id")
+
 [[ "$valid_urlhint" != "$applic_id" ]] && {
    try_hint=`cut -d' ' -f1 $conf|grep $applic_id|cut -d' ' -f1`
    echo "ERROR: hint ($applic_id) not found or ambiguous!"
