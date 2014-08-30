@@ -17,10 +17,20 @@ conf="$tooldir/../conf/g2.conf"
 ## Allow custom selection of browser (via last parameter perhaps)
 
 ## list of browsers + full path
-chrome_bin='/cygdrive/c/Program Files (x86)/Google/Chrome/Application/chrome.exe'
-firefox_bin='/cygdrive/c/Program Files (x86)/Mozilla Firefox/firefox.exe'
-ie_bin='/cygdrive/c/Program Files/Internet Explorer/iexplore.exe'
-iron_bin='/cygdrive/c/Program Files (x86)/SRWare Iron/iron.exe'
+case "$(uname)" in 
+  Darwin)
+   chrome_bin='/Applications/Google Chrome.app'
+   firefox_bin='/Applications/Firefox.app'
+   default2use=$chrome_bin
+  ;;
+  *)
+   chrome_bin='/cygdrive/c/Program Files (x86)/Google/Chrome/Application/chrome.exe'
+   firefox_bin='/cygdrive/c/Program Files (x86)/Mozilla Firefox/firefox.exe'
+   ie_bin='/cygdrive/c/Program Files/Internet Explorer/iexplore.exe'
+   iron_bin='/cygdrive/c/Program Files (x86)/SRWare Iron/iron.exe'
+   default2use=$iron_bin
+  ;;
+esac
 
 case "$browser_type" in
   chrome|cr)
@@ -36,7 +46,7 @@ case "$browser_type" in
     browser2use=$iron_bin
   ;;
   *)
-    browser2use=$iron_bin
+    browser2use=$default2use
   ;;
 esac
 
@@ -138,4 +148,7 @@ final_url=$(awk "/^$applic_id / {print \$NF}" $conf)
 }
 
 echo "[log] - \$final_url - |$final_url|"
-"$browser2use" "$final_url"
+
+browse_run_prefix=
+[[ "$(uname)" = "Darwin" ]] && browser_run_prefix='open '
+$browser_run_prefix "$browser2use" "$final_url"
