@@ -149,7 +149,6 @@ final_url=$(awk "/^$applic_id / {print \$NF}" $conf)
 
 echo "[log] - \$final_url - |$final_url|"
 
-set -xv
 browse_run_prefix=
 [[ "$(uname)" = "Darwin" ]] && browser_run_prefix='open -a '
 $browser_run_prefix "$browser2use" "$final_url"
