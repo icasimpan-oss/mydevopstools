@@ -23,11 +23,13 @@ case "$(uname)" in
   Darwin)
    [[ -z $chrome_bin  ]] && chrome_bin='/Applications/Google Chrome.app'
    [[ -z $firefox_bin ]] && firefox_bin='/Applications/Firefox.app'
+   [[ -z $safari_bin  ]] && safari_bin='/Applications/Safari.app'
    [[ -z $default2use ]] && default2use=$chrome_bin
   ;;
   
   Linux)
    [[ -z $firefox_bin ]] && firefox_bin='/usr/bin/firefox'
+   [[ -z $opera_bin   ]] && opera_bin='/usr/bin/opera'
    [[ -z $default2use ]] && default2use=$firefox_bin
   ;;
 
@@ -36,6 +38,8 @@ case "$(uname)" in
    [[ -z $firefox_bin ]] && firefox_bin='/cygdrive/c/Program Files (x86)/Mozilla Firefox/firefox.exe'
    [[ -z $ie_bin      ]] && ie_bin='/cygdrive/c/Program Files/Internet Explorer/iexplore.exe'
    [[ -z $iron_bin    ]] && iron_bin='/cygdrive/c/Program Files (x86)/SRWare Iron/iron.exe'
+   [[ -z $safari_bin  ]] && safari_bin='/cygdrive/c/Program Files (x86)/Safari/Safari.exe'
+   [[ -z $opera_bin   ]] && opera_bin='/cygdrive/c/Program Files (x86)/Opera/launcher.exe'
    [[ -z $default2use ]] && default2use=$iron_bin
   ;;
 
