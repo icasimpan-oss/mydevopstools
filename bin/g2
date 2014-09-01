@@ -17,6 +17,7 @@ user_conf="$tooldir/../conf/g2-user.conf"
 [[ -e $user_conf ]] && . $user_conf
 
 ## list of browsers + full path
+## TODO: add later Opera & Safari
 case "$(uname)" in 
   ## Mac OSX
   Darwin)
@@ -163,4 +164,4 @@ echo "[log] - \$final_url - |$final_url|"
 
 browse_run_prefix=
 [[ "$(uname)" = "Darwin" ]] && browser_run_prefix='open -a '
-$browser_run_prefix "$browser2use" "$final_url"
+$browser_run_prefix "$browser2use" "$final_url" &
