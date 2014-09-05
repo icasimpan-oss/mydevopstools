@@ -14,6 +14,9 @@ browser_type="$2"
 tooldir=$(dirname $0)
 conf="$tooldir/../conf/g2.conf"
 user_conf="$tooldir/../conf/g2-user.conf"
+logdir="$tooldir/../logs"
+[[ ! -d $logdir ]] && mkdir -p $logdir
+ 
 [[ -e $user_conf ]] && . $user_conf
 
 ## list of browsers + full path
@@ -136,6 +139,8 @@ valid_urlhint=$(parse_urlhint "$applic_id")
 
 [[ "$valid_urlhint" != "$applic_id" ]] && {
    try_hint=`cut -d' ' -f1 $conf|grep $applic_id|cut -d' ' -f1`
+   ## add logging so bookmarks can be optimized further
+   echo "[$(date)] - $applic_id - $(echo $try_hint|wc -w)" >> $logdir/invalid_hints.log
    echo "ERROR: hint ($applic_id) not found or ambiguous!"
    ## if $try_hint has some matches, show it
    [[ "$try_hint" != "" ]] && {
