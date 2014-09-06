@@ -14,7 +14,7 @@ browser_type="$2"
 tooldir=$(dirname $0)
 conf="$tooldir/../conf/g2.conf"
 user_conf="$tooldir/../conf/g2-user.conf"
-logdir="$tooldir/../logs"
+logdir="$tooldir/../logs/g2"
 [[ ! -d $logdir ]] && mkdir -p $logdir
  
 [[ -e $user_conf ]] && . $user_conf

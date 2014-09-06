@@ -20,7 +20,7 @@ CONFIGURATIONS:
 
 INVALID HINTS LOGGING:
  To support optimization of urlhints used, logging is added. It can be seen from
-   logs/invalid_hints.log
+   logs/g2/invalid_hints.log
 
  Example, in this log entries:
   [Fri, Sep 05, 2014  2:41:24 PM] - lean - 0
