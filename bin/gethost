@@ -1,0 +1,43 @@
+#!/bin/bash
+
+TARGET_IDENT=$1
+DATA_SELECTOR=$2
+
+[[ $# -eq 0 ]] && {
+   echo "ERROR: incorrect usage"
+   echo 'Usage: ./gethost <host> [<data_selector>]'
+   echo ' where:'
+   echo '  * host - mandatory and can be either IP, hostname or alias. Output defaults to ip address'
+   echo '           <data_selector> selects what to output other than ip address. See below'
+   echo '  * data_selector - selects which data to output. Valid values:'
+   echo '         (+) rev    - reverses ip address, outputs hostname'
+   echo "         (+) htype  - outputs hardware type (i.e. 'dell')"
+   echo "         (+) alias  - output the other name (i.e. 'washington' alias is 'dell-01')"
+   echo '         (+) ralias - output the hostname with 'host'='alias' (see sample below)'
+   echo
+   echo '  Sample:'
+   echo '   ~$ gethost washington'
+   echo '   1.2.3.10'
+   echo '   ~$ gethost 1.2.3.10 rev'
+   echo '   washington'
+   echo '   ~$ gethost washington htype'
+   echo '   dell'
+   echo '   ~$ gethost washington alias'
+   echo '   dell-01'
+   echo '   ~$ gethost dell-01 ralias'
+   echo '   washington'
+
+   exit 1
+}
+
+TOOLDIR=$(dirname $0)
+PSEUDO_DNS=$TOOLDIR/../conf/gethost.conf
+[[ ! -e $PSEUDO_DNS ]] && { echo "ERROR: Missing ${PSEUDO_DNS}. Aborting"; exit 1; }
+FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $1}' ${PSEUDO_DNS})
+[ "$DATA_SELECTOR" == "rev" ]    && FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $2}' ${PSEUDO_DNS})
+[ "$DATA_SELECTOR" == "htype" ]  && FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $3}' ${PSEUDO_DNS})
+[ "$DATA_SELECTOR" == "alias" ]  && FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $4}' ${PSEUDO_DNS})
+[ "$DATA_SELECTOR" == "ralias" ] && FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $2}' ${PSEUDO_DNS})
+
+## return ip address if found. Otherwise, 'exit 1'
+[[ "$FINAL_HOST" == "" ]] && exit 1 || echo $FINAL_HOST|tr A-Z a-z
