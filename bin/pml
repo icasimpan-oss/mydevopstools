@@ -1,0 +1,173 @@
+#!/bin/bash
+
+ml_to_get=$1 ### mailing_list_alias (column1 in $ml_conf)
+
+ml_homedir=$(dirname $0)
+ml_conf=$ml_homedir/../conf/pml.conf
+subscribers_dir=$ml_homedir/../conf/pml
+logdir=$ml_homedir/../logs/pml
+[[ ! -e $logdir ]] && mkdir -p $logdir
+script_tmp=$ml_homedir/../tmp
+[[ ! -e $script_tmp ]] && mkdir -p $script_tmp
+log_enable=1 ## logging active. Otherwise, use '0'
+
+## make sure that scripts sends at least 1 parameter for
+## subscriber alias defined in $ml_conf
+[[ $# -lt 1 ]] && {
+  echo "ERROR: missing ml_alias
+Usage: ./pml <ml_alias>
+ * ml_alias - defined in $ml_conf
+"
+  exit 1
+}
+
+## ---------------------------------------------------------------------
+## _logger() - as per name, records the logs to a logfile, provided that
+##             global variable $log_enable is 1
+## INPUT: $* - consists of the full log path on $1 and the rest, the log
+##             text
+## ---------------------------------------------------------------------
+_logger()
+{
+  local log_line=$*
+
+  ## get the first variable, the $logfile
+  local logfile=$(echo $log_line|cut -d' ' -f1)
+
+  ## the rest, are the log text
+  local log_text=$(echo $log_line|cut -d' ' -f2-)
+
+  ## log only if it is allowed
+  [[ $log_enable -eq 1 ]] && [[ "$logfile" != "$log_text" ]] && echo "$log_text" >> $logfile
+} ## END: _logger()
+
+## blank lines allowed
+## comment allowed for as long as it starts with '#'
+get_mlfile()
+{
+  local ml_to_find=$1
+
+  local ml_to_get=${ml_to_find#__*} ## prepare for __REFEFERENCE ml
+  subscriber_file=${subscribers_dir}/`grep -v '^$' $ml_conf|grep -v ^#|awk -F: "/^${ml_to_get}:/ {print \\$2}"`
+
+  echo "$subscriber_file"
+} ## END: get_mlfile()
+
+## assembles the final format, ready for email to/cc/bcc lines
+get_subscriber()
+{
+    local subscriber_file=$1
+    local email_delim=$2
+
+    ## ignore blank space & comment
+    ## blank lines allowed
+    ## comment allowed for as long as it starts with '#'
+    final_sub=""
+    for next_email in $(cat $subscriber_file|grep -v '^$'|grep -v ^#); do
+        final_sub=${final_sub}"$next_email${email_delim} "
+    done
+    echo $final_sub|sed "s/$email_delim$//g" ## remove extra delimiter at the last email subscriber
+} ## END: get_subscriber()
+
+## ---------------------------------------------------------------------------------
+## parser_filter() - helps filter reference lines(THOSE WITH __ at start of string)
+##                   against actual email address
+## INPUT: $1 - subscriber file
+##        $2 - identifier ("email", or "ref")
+##        $3 - logfile to dump output to (optional) and if given, no more echoing of
+##             file used as it is known already to caller
+## OUTPUT: return temp file fullname
+## ---------------------------------------------------------------------------------
+parser_filter()
+{
+  local subscriber_file=$1
+  local identifier=$2
+  local logfile=$3 ## optional. If given, do return this value
+
+  local temp_file=$logfile
+  [[ "$logfile" = "" ]] && temp_file=$(mktemp $script_tmp/tmp.oms_mlmanXXXX)
+
+  case "$identifier" in
+    email)
+      grep -v ^__ $subscriber_file|sort|uniq >> $temp_file
+    ;;
+    ref)
+      grep ^__ $subscriber_file|sort|uniq >> $temp_file
+    ;;
+  esac
+
+  ## echo only if $logfile is empty/not given
+  [[ "$logfile" = "" ]] && echo $temp_file
+} ## END: parser_filter()
+
+## ------------------------------------------------------------------
+## parse_listfile() - main parser logic
+##
+## ------------------------------------------------------------------
+parse_listfile()
+{
+  local subscriber_file=$1
+  local email_delim=$2
+
+  local ret_val=''
+  local raw_emails_file='' ## file to all emails file (1 email per line) but not yet ready for TO/CC/BCC part
+  local raw_refs_file=''   ## file to all references, still to be parsed further (but must not have refs inside)
+  local violations_log=$logdir/${ml_to_get}-violations.log
+  local real_subfile=
+  local possible_violations=
+
+  ## (00) remove the $violations_log every run to avoid filling-up disk space unecessarily.
+  ## coz anyway, it will have the same logs or violations in each run. Old violations info
+  ## will not matter
+  [[ -e $violations_log ]] && rm $violations_log
+  ## (01) ensure subscriber file is not empty. Otherwise, what's the point?
+  ## ...but, so as not to crash the whole system, just return empty string to final return statement
+  if [[ $(ls $subscriber_file|wc -l) -eq 1 ]] && [[ -s $subscriber_file ]]; then
+    ## (10) put to a temp_file list of non-reference lines (THOSE NOT STARTING WITH __), take note of temp file
+    ## ...something like: grep -v ^__ t1.txt
+    ## what if this does not exist?
+    raw_emails_file=$(parser_filter "$subscriber_file" "email")
+
+    ## (20) get those references (THOSE STARTING WITH __), take note of temp file
+    ## ...something like: grep ^__ t1.txt
+    ## what if this does not exist?
+    raw_refs_file=$(parser_filter "$subscriber_file" "ref")
+
+    ## (30) parse individual references (but removing 2nd level references).
+    ## Log those violations found
+    _logger "$violations_log Log timestamp: $(date)"
+    _logger "$violations_log Parsing main listfile: ->$subscriber_file<-"
+    for next_ref in $(cat $raw_refs_file|grep -v '^$'|grep -v ^#); do
+      ## get real mailing list file (full path)
+      real_subfile=$(get_mlfile "$next_ref")
+      _logger "$violations_log checking ref: ->$next_ref<-"
+      _logger "$violations_log -------- START BLOCK: possible violations -----"
+      ## log violations to $violations_log, if logging is active
+      possible_violations=$(parser_filter "$real_subfile" "ref")
+      _logger "$violations_log $(cat $possible_violations)"
+      _logger "$violations_log -------- END BLOCK: possible violations -----"
+      ## get actual emails for each ref and append to $raw_emails_file
+      parser_filter "$real_subfile" "email" "$raw_emails_file"
+    done
+
+    ## now, get final subscribers file via get_subscribers()
+    ret_val=$(get_subscriber "$raw_emails_file" "$email_delimiter")
+  fi
+
+  ## remove temporary files
+  rm $raw_emails_file
+  rm $raw_refs_file
+
+  echo "$ret_val"
+} ## END: parse_listfile()
+
+## get $ml_to_get mailing list file
+subscriber_file=$(get_mlfile "$ml_to_get")
+
+## set email delimiter.
+##  * sent via CLI/SCRIPT                 - comma (,)
+##  * sent via external App(e.g. Outlook) - semicolon (;)
+email_delimiter=','
+[ "$2" == '-d=outlook' ] && email_delimiter=';'
+
+echo $(parse_listfile $subscriber_file "$email_delimiter")

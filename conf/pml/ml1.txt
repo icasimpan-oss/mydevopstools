@@ -1,0 +1,13 @@
+## 'internal' MAILING LIST
+##
+## RULES:
+##    * comment SHOULD start with # (no leading whitespaces)
+##    * blank lines allowed
+##    * "alias:ml_file.txt" should have no spaces anywher
+
+## list of subscribers...
+ml1a@subscribers.local
+
+ml1b@subscribers.local
+## disabled subscribers...
+#ismael.angelo@casimpan.com
