@@ -4,6 +4,8 @@ Tools summary:
 * pml          - Pseudo-Mailing List Manager for simple tools
 * ssh_connect  - ssh tool that can connect to a lot of ssh servers with hostnames/ip-address or accessible only from certain machines
 * cyg_ifconfig - ifconfig like tool in Cygwin 
+* my_cli       - allows you to run commands from remote using your local machine
+* screen_rmx   - deletes dead screen sessions
 
 Tool Structure:
 

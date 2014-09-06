@@ -1,0 +1,29 @@
+###################################################################
+## SCRIPT NAME  : my_cli
+## PURPOSE      : enable you to run your commands/scripts directly
+##               from your own CLI (but commands actually run from
+##               specific server). This is a very simple script, no need
+##               to sweat :)
+## AUTHOR       : Ismael Angelo Casimpan Jr.
+## PRECONDITION : You have ssh access (preferrably password-less)
+## TODO         : * Enable running commands/script from other machine
+###################################################################
+
+#!/bin/bash
+
+cmd_to_run=$*
+
+user_and_machine='root@1.2.3.4' ## configure this to actual user@machine
+
+[[ $# == 0 ]] &&
+    echo 'ERROR: No command specified'
+    echo 'Usage: ./my_cli <CMD_and_PARAM>
+         '
+    exit 1
+}
+
+gen_temp_cmdlist=$(mktemp ./temp.my_cliXXX)
+echo $cmd_to_run > $gen_temp_cmdlist 
+ssh -4q -o StrictHostKeyChecking=no $user_and_machine  < $gen_temp_cmdlist
+rm $gen_temp_cmdlist
+

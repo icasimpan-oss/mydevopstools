@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for n in $(screen -ls|awk '/Dead/ {print $1}'); do
+    screen -wipe $n
+done
