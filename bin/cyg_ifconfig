@@ -1,0 +1,67 @@
+#!/bin/bash
+
+## always ensure this tool is only run on Cygwin
+[[ $(uname) =~ "CYGWIN" ]] || {
+  echo "ERROR: cyg_ifconfig can only be run on Cygwin
+  "
+  exit 1
+}
+
+iface=$1
+
+## TODO: use the output of:
+##     ---> ipconfig /all|grep adapter
+## which in my laptop is:
+##
+##     Ethernet adapter Local Area Connection* 11:
+##     Ethernet adapter Bluetooth Network Connection:
+##     Wireless LAN adapter Wireless Network Connection:
+##     Ethernet adapter Local Area Connection:
+##     Ethernet adapter VirtualBox Host-Only Network:
+##
+## to autogenerate interface notations
+##
+## like
+##
+## eth1 - Ethernet adapter Local Area Connection* 11:
+## ebt0 - Ethernet adapter Bluetooth Network Connection:
+## wth0 - Wireless LAN adapter Wireless Network Connection:
+## eth0 - Ethernet adapter Local Area Connection:
+## evb0 - Ethernet adapter VirtualBox Host-Only Network:
+##
+##
+case "$iface" in
+    'eth0')
+        ifsig='Ethernet adapter Local Area Connection:'
+        ;;
+    'wth0')
+        ifsig='Wireless LAN adapter Wireless Network Connection:'
+        ;;
+    'evb0')
+        ifsig='Ethernet adapter VirtualBox Host-Only Network:'
+        ;;
+    'ebt0')
+        ifsig='Ethernet adapter Bluetooth Network Connection:'
+        ;;
+    '-h'|'--help')
+        iface='-h' ## so as not to run line for showing interface info
+        echo 'Custom ifconfig script for Cygwin'
+        echo
+        echo "Usage: `basename $0` [<iface>|-h]"
+        echo '    -h  Also, '--help'. Shows this help file'
+        echo
+        echo '   <iface> options:'
+        echo '     * eth0  - first LAN interface'
+        echo '     * wth0  - first Wireless interface'
+        echo '     * evb0  - first LAN Virtualbox interface'
+        echo '     * ebt0  - first Bluetooth interface'
+        echo
+        ;;
+    *)
+        ## default interface found
+        ipconfig /all
+    ;;
+esac
+
+## run only if an interface is specified
+[ "$iface" != "" ] && [ "$iface" != '-h' ] && ipconfig /all|awk "/$ifsig/ {blank_seen=0} blank_seen < 2 {print} NF==0 {++blank_seen}"|grep -v "Windows IP Configuration"
