@@ -1,5 +1,9 @@
 #!/bin/bash
 
+## -------- source common library ---------
+PROJECT_ROOTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../ && pwd )"
+. $PROJECT_ROOTDIR/etc/controller.bash.inc
+
 TARGET_IDENT=$1
 DATA_SELECTOR=$2
 
@@ -31,7 +35,7 @@ DATA_SELECTOR=$2
 }
 
 TOOLDIR=$(dirname $0)
-PSEUDO_DNS=$TOOLDIR/../conf/gethost.conf
+PSEUDO_DNS=$CONF_DIR/gethost/gethost.conf
 [[ ! -e $PSEUDO_DNS ]] && { echo "ERROR: Missing ${PSEUDO_DNS}. Aborting"; exit 1; }
 FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $1}' ${PSEUDO_DNS})
 [ "$DATA_SELECTOR" == "rev" ]    && FINAL_HOST=$(awk 'BEGIN{IGNORECASE=1;}/'${TARGET_IDENT}'/ {print $2}' ${PSEUDO_DNS})
