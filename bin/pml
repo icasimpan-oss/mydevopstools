@@ -10,7 +10,7 @@ ml_conf=$CONF_DIR/pml/pml.conf
 subscribers_dir=$CONF_DIR/pml/subscribers
 logdir=$LOG_DIR/pml
 [[ ! -e $logdir ]] && mkdir -p $logdir
-script_tmp=$LOG_DIR/tmp
+script_tmp=$TMP_DIR
 [[ ! -e $script_tmp ]] && mkdir -p $script_tmp
 log_enable=1 ## logging active. Otherwise, use '0'
 
