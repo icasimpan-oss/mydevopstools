@@ -5,6 +5,10 @@
 
 #!/bin/bash
 
+## -------- source common library ---------
+PROJECT_ROOTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../ && pwd )"
+. $PROJECT_ROOTDIR/etc/controller.bash.inc
+
 ## DESIRED COMMAND => ./g2_v2 <URL_HINT> <browser_type>
 
 ## PARAMETERS
@@ -12,9 +16,9 @@ url_hint="$1"
 browser_type="$2"
 
 tooldir=$(dirname $0)
-conf="$tooldir/../conf/g2.conf"
-user_conf="$tooldir/../conf/g2-user.conf"
-logdir="$tooldir/../logs/g2"
+conf="$CONF_DIR/g2/g2.conf"
+user_conf="$CONF_DIR/g2/g2-user.conf"
+logdir="$LOG_DIR/g2"
 [[ ! -d $logdir ]] && mkdir -p $logdir
  
 [[ -e $user_conf ]] && . $user_conf
@@ -46,8 +50,15 @@ case "$(uname)" in
    [[ -z $default2use ]] && default2use=$iron_bin
   ;;
 
+  ## Tested only in msys2
+  MSYS_NT*)
+   [[ -z $chrome_bin  ]] && chrome_bin='/c/Program Files (x86)/Google/Chrome/Application/chrome.exe'
+   [[ -z $ie_bin      ]] && ie_bin='/c/Program Files/Internet Explorer/iexplore.exe'
+   [[ -z $default2use ]] && default2use=$chrome_bin
+  ;;
+  
   *)
-   echo "ERROR: Unknown platform. Supported are Mac/Linux/Cygwin"
+   echo "ERROR: Unknown platform. Supported are Mac/Linux/Cygwin/MSys2"
    exit 1
   ;;
 esac

@@ -4,6 +4,10 @@
 ## AUTHOR: Ismael Casimpan <ismael.angelo@casimpan.com>
 ###############################################################
 
+## -------- source common library ---------
+PROJECT_ROOTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )"/../ && pwd )"
+. $PROJECT_ROOTDIR/etc/controller.bash.inc
+
 MACHINE_NAME=$1
 USER_TO_USE=$2
 
@@ -20,7 +24,7 @@ enable_sshkey_autodetect=1
 ## include config file
 path_to_script=`dirname $0`
 [ $devel_mode -eq 1 ] && path_to_script='.' ## when in development, conf is in current location
-. "$path_to_script"/../conf/ssh_connect.conf
+. "$path_to_script"/../etc/ssh_connect/ssh_connect.conf
 
 autodetect_sshkey ()
 {
